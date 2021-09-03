@@ -1,5 +1,5 @@
 import React from "react";
-import { Wave } from "./component";
+import { WaveClient } from "./component";
 import { useAppModel } from "./model";
 import "./App.css";
 
@@ -22,7 +22,7 @@ function App() {
 
             connected: (acc, api) => (<>
               <h1 className="gigantic">hello!</h1>
-              <Wave api={api} bail={reset} />
+              <WaveClient api={api} bail={reset} />
             </>),
 
             notConnected: (connect) => (<>

@@ -1,23 +1,20 @@
 async function main() {
-	const [owner, somebody] = await ethers.getSigners();
-	const wavePortal = await hre.ethers.getContractFactory("WavePortal");
-	const contract = await wavePortal.deploy();
-	await contract.deployed();
-	console.log(`Contract deployed to:${contract.address} by:${owner.address}`);
+  const WavePortal = await hre.ethers.getContractFactory("WavePortal");
+  const contract = await WavePortal.deploy();
+  await contract.deployed();
+  console.log(`Contract deployed to: ${contract.address}`);
 
-	let total = await contract.totalWaves();
-	console.log(`before wave: ${total}`);
-	await (await contract.wave()).wait();
-	total = await contract.totalWaves();
-	console.log(`after wave: ${total}`);
+  let total = await contract.totalWaves();
+  console.log(`before wave: ${total}`);
 
-	await (await contract.connect(somebody).wave()).wait();
-	total = await contract.totalWaves();
-	console.log(`after other wave: ${total}`);
+  let txn = await contract.wave("first");
+  await txn.wait();
+
+  console.log(await contract.allWaves());
 }
 
 
 main().catch((e) => {
-	console.error(e);
-	process.exit(1);
+  console.error(e);
+  process.exit(1);
 });

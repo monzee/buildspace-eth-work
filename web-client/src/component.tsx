@@ -1,6 +1,6 @@
-import { ReactNode, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { WaveApi } from "./model";
-import { watch } from "./util";
+import { completion } from "./util";
 
 
 function Status({ max, value, message, done }: {
@@ -34,7 +34,7 @@ function Status({ max, value, message, done }: {
   );
 }
 
-export function Wave({ api, bail }: { api: WaveApi; bail?: () => void }) {
+export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [count, setCount] = useState(-1);
   const [progress, setProgress] = useState(0);
@@ -42,7 +42,7 @@ export function Wave({ api, bail }: { api: WaveApi; bail?: () => void }) {
 
   const action = useCallback(async () => {
     setBusy(true);
-    let newCount = await watch(api.wave(), (status) => {
+    let newCount = await completion(api.wave("hola"), (status) => {
       switch (status[0]) {
         case "pending":
           setStatus("awaiting user approval...");
@@ -57,7 +57,7 @@ export function Wave({ api, bail }: { api: WaveApi; bail?: () => void }) {
           setBusy(false);
           setProgress(3);
           break;
-        case "rejected":
+        case "denied":
           setStatus("rejected.");
           setBusy(false);
           setProgress(4);
@@ -86,6 +86,7 @@ export function Wave({ api, bail }: { api: WaveApi; bail?: () => void }) {
       let total = await api.totalWaves();
       console.info(`init: ${total}`);
       setCount(total);
+      console.info(await api.allWaves());
     })();
   }, [api]);
 
@@ -104,23 +105,3 @@ export function Wave({ api, bail }: { api: WaveApi; bail?: () => void }) {
   );
 }
 
-export function Once({ children, effect }: {
-  effect: () => any
-  children?: ReactNode
-}) {
-  useEffect(effect, [effect]);
-  return <>{children}</>;
-}
-
-export function Log({ children, value, severity = "log" }: {
-  value: any
-  severity: "log" | "info" | "error" | "debug" | "warn"
-  children?: ReactNode
-}) {
-  const effect = useCallback(() => {
-    console[severity](value);
-  }, [value, severity]);
-  return (
-    <Once effect={effect}>{children}</Once>
-  );
-}

@@ -1,22 +1,25 @@
 import { useState, useRef, useEffect } from "react";
-import { ethers, ContractTransaction, ContractReceipt } from "ethers";
+import { ethers } from "ethers";
 import { WavePortal, WavePortal__factory } from "./contract";
-import { Sum } from "./util";
+import { Sum, TxnProgress } from "./util";
 
 
 const eth = (window as any).ethereum;
-const address = "0x77AC8952e1f24cd20c812E43BcCe10826a3F6d5A";
+const address = "0x130E8023fdb06422e0F0528446263ce10Daa7bcC";
 
-export type TxnProgress =
-  | [tag: "pending"]
-  | [tag: "rejected"]
-  | [tag: "accepted", transaction: ContractTransaction]
-  | [tag: "done", receipt: ContractReceipt]
-  | [tag: "caught", error: any]
+export type Wave = {
+  waver: string
+  message: string
+  timestamp: Date
+}
 
 export type WaveApi = {
-  wave(): AsyncIterator<TxnProgress, number | undefined>
   totalWaves(): Promise<number>
+  allWaves(): Promise<Wave[]>
+  wave(
+    this: WaveApi,
+    message: string
+  ): AsyncIterator<TxnProgress, number | undefined>
 }
 
 export type State = {
@@ -70,11 +73,11 @@ export function useAppModel(): State {
       setState(init);
     },
 
-    api: (contract: WavePortal) => ({
-      async *wave(): AsyncGenerator<TxnProgress, number | undefined> {
+    api: (contract: WavePortal): WaveApi => ({
+      async *wave(message) {
         try {
           yield ["pending"];
-          let txn = await contract.wave();
+          let txn = await contract.wave(message);
           yield ["accepted", txn];
           let receipt = await txn.wait();
           yield ["done", receipt];
@@ -82,7 +85,7 @@ export function useAppModel(): State {
         }
         catch (error) {
           if ((error as any).code === 4001) {
-            yield ["rejected"];
+            yield ["denied"];
           }
           else {
             yield ["caught", error];
@@ -99,6 +102,21 @@ export function useAppModel(): State {
         catch (error) {
           setState((lastGood) => ({ tag: "caught", error, lastGood }));
           return -1;
+        }
+      },
+
+      async allWaves() {
+        try {
+          let waves = await contract.allWaves();
+          return waves.map(({ waver, message, timestamp }) => ({
+            waver,
+            message,
+            timestamp: new Date(timestamp.toNumber() * 1000),
+          }));
+        }
+        catch (error) {
+          setState((lastGood) => ({ tag: "caught", error, lastGood }));
+          return [];
         }
       },
     })
