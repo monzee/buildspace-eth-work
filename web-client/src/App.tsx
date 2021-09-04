@@ -35,7 +35,7 @@ function App() {
             failed: (reason, rollback) => {
               console.error(reason);
               rollback();
-              return undefined;
+              return null;
             },
           })}
         </div>

@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { ethers } from "ethers";
+import { useState, useMemo, useEffect } from "react";
+import { ethers, BigNumber } from "ethers";
 import { WavePortal, WavePortal__factory } from "./contract";
 import { Sum, TxnProgress } from "./util";
 
@@ -16,10 +16,8 @@ export type Wave = {
 export type WaveApi = {
   totalWaves(): Promise<number>
   allWaves(): Promise<Wave[]>
-  wave(
-    this: WaveApi,
-    message: string
-  ): AsyncIterator<TxnProgress, number | undefined>
+  subscribe(listener: (newWave: Wave) => void): () => void
+  wave(message: string): AsyncIterable<TxnProgress>
 }
 
 export type State = {
@@ -42,11 +40,17 @@ export function useAppModel(): State {
     | { tag: "no-accounts" }
     | { tag: "caught"; error: any; lastGood: Internal };
 
-  const init: Internal = { tag: eth ? "checking" : "no-eth" };
-  const [state, setState] = useState<Internal>(init);
+  const [state, setState] = useState<Internal>({
+    tag: eth ? "checking" : "no-eth"
+  });
 
-  const my = useRef({
+  const my = useMemo(() => ({
     async connect(method: EthMethod) {
+      if (!eth) {
+        setState({ tag: "no-eth" });
+        return;
+      }
+      setState({ tag: "checking" });
       try {
         let accounts = await eth.request({ method });
         if (accounts.length) {
@@ -64,13 +68,16 @@ export function useAppModel(): State {
         }
       }
       catch (error) {
-        setState((lastGood) => ({ tag: "caught", error, lastGood }));
+        my.catch(error);
       }
     },
 
     start() {
-      eth && my.connect("eth_accounts");
-      setState(init);
+      my.connect("eth_accounts");
+    },
+
+    catch(error: any) {
+      setState((lastGood) => ({ tag: "caught", error, lastGood }));
     },
 
     api: (contract: WavePortal): WaveApi => ({
@@ -81,15 +88,14 @@ export function useAppModel(): State {
           yield ["accepted", txn];
           let receipt = await txn.wait();
           yield ["done", receipt];
-          return this.totalWaves();
         }
         catch (error) {
           if ((error as any).code === 4001) {
             yield ["denied"];
           }
           else {
-            yield ["caught", error];
-            setState((lastGood) => ({ tag: "caught", error, lastGood }));
+            my.catch(error);
+            yield ["panic", error];
           }
         }
       },
@@ -100,7 +106,7 @@ export function useAppModel(): State {
           return bignum.toNumber();
         }
         catch (error) {
-          setState((lastGood) => ({ tag: "caught", error, lastGood }));
+          my.catch(error);
           return -1;
         }
       },
@@ -115,12 +121,24 @@ export function useAppModel(): State {
           }));
         }
         catch (error) {
-          setState((lastGood) => ({ tag: "caught", error, lastGood }));
+          my.catch(error);
           return [];
         }
       },
+
+      subscribe(listener) {
+        const dispatch = (waver: string, ts: BigNumber, message: string) => {
+          listener({
+            waver,
+            message,
+            timestamp: new Date(ts.toNumber() * 1000),
+          });
+        };
+        contract.on("NewWave", dispatch);
+        return () => contract.removeListener("NewWave", dispatch);
+      },
     })
-  }).current;
+  }), []);
 
   useEffect(() => my.start(), [my]);
 

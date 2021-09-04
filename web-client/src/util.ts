@@ -14,7 +14,7 @@ export type TxnProgress =
   | [tag: "denied"]
   | [tag: "accepted", transaction: ContractTransaction]
   | [tag: "done", receipt: ContractReceipt]
-  | [tag: "caught", error: any]
+  | [tag: "panic", error: any]
 
 export async function completion<T, R>(
   stream: AsyncIterator<T, R>,
@@ -30,3 +30,13 @@ export async function completion<T, R>(
     }
   }
 }
+
+export function tick(f: (cnt: number) => void): () => void {
+  let i = 0;
+  return () => f(i++);
+}
+
+export function formatDate(ts: Date): string {
+  return ts.toLocaleString();
+}
+
