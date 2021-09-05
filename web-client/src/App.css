@@ -114,6 +114,7 @@ h1.gigantic {
 
 .waves {
   margin-top: 1em;
+  display: block;
 }
 .wave {
   text-align: left;

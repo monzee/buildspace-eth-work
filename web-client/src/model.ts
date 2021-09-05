@@ -5,19 +5,20 @@ import { Sum, TxnProgress } from "./util";
 
 
 const eth = (window as any).ethereum;
-const address = "0x130E8023fdb06422e0F0528446263ce10Daa7bcC";
+const address = "0x7378c22F2800e627c0E47eeE60320dc1d09BF23B";
 
 export type Wave = {
   waver: string
   message: string
   timestamp: Date
+  winner: boolean
 }
 
 export type WaveApi = {
   totalWaves(): Promise<number>
   allWaves(): Promise<Wave[]>
   subscribe(listener: (newWave: Wave) => void): () => void
-  wave(message: string): AsyncIterable<TxnProgress>
+  wave(message: string): AsyncGenerator<TxnProgress, boolean>
 }
 
 export type State = {
@@ -84,10 +85,11 @@ export function useAppModel(): State {
       async *wave(message) {
         try {
           yield ["pending"];
-          let txn = await contract.wave(message);
+          let txn = await contract.wave(message, { gasLimit: 300000 });
           yield ["accepted", txn];
           let receipt = await txn.wait();
           yield ["done", receipt];
+          return receipt?.events?.[0]?.args?.winner;
         }
         catch (error) {
           if ((error as any).code === 4001) {
@@ -97,6 +99,7 @@ export function useAppModel(): State {
             my.catch(error);
             yield ["panic", error];
           }
+          return false;
         }
       },
 
@@ -114,9 +117,10 @@ export function useAppModel(): State {
       async allWaves() {
         try {
           let waves = await contract.allWaves();
-          return waves.map(({ waver, message, timestamp }) => ({
+          return waves.map(({ waver, message, timestamp, winner }) => ({
             waver,
             message,
+            winner,
             timestamp: new Date(timestamp.toNumber() * 1000),
           }));
         }
@@ -127,10 +131,13 @@ export function useAppModel(): State {
       },
 
       subscribe(listener) {
-        const dispatch = (waver: string, ts: BigNumber, message: string) => {
+        const dispatch = (
+          message: string, waver: string, ts: BigNumber, winner: boolean
+        ) => {
           listener({
             waver,
             message,
+            winner,
             timestamp: new Date(ts.toNumber() * 1000),
           });
         };

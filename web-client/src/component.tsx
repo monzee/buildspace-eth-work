@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { WaveApi, Wave } from "./model";
-import { tick, formatDate } from "./util";
+import { completion, tick, formatDate } from "./util";
 
 
 function Status({ max, value, message, done }: {
@@ -52,7 +52,7 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
     }
     setBusy(true);
     let fakeProgress!: ReturnType<typeof setInterval>;
-    for await (let status of api.wave(msg)) {
+    let winner = await completion(api.wave(msg), (status) => {
       switch (status[0]) {
         case "pending":
           setStatus("awaiting user approval...");
@@ -80,9 +80,12 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
           bail?.();
           break;
       }
-    }
+    });
     clearInterval(fakeProgress);
     setBusy(false);
+    if (winner) {
+      setStatus("🎉 YOU WON! 🎉");
+    }
   }, [api, bail]);
 
   const reset = useCallback(() => {
@@ -123,17 +126,17 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
         <h3>wave back{count ? ` (${count})` : ""}</h3>
       </button>
       {count ? (
-        <section className="waves">
-          {waves.map(({ waver, message, timestamp }, i) => (
+        <output className="waves">
+          {waves.map(({ waver, message, timestamp, winner }, i) => (
             <div className="wave" key={i}>
               <p className="message">{message}</p>
               <p className="meta">
                 <span>{formatDate(timestamp)}</span>
-                <span>🏆 {waver}</span>
+                <span>{winner ? `🏆 ${waver}` : waver}</span>
               </p>
             </div>
           ))}
-        </section>
+        </output>
       ) : null}
     </form>
   );

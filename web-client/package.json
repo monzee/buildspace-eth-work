@@ -44,5 +44,6 @@
   "devDependencies": {
     "@typechain/ethers-v5": "^7.0.1",
     "typechain": "^5.1.2"
-  }
+  },
+  "homepage": "/the-wave"
 }
