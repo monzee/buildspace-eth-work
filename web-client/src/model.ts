@@ -89,7 +89,7 @@ export function useAppModel(): State {
           yield ["accepted", txn];
           let receipt = await txn.wait();
           yield ["done", receipt];
-          return receipt?.events?.[0]?.args?.winner;
+          return receipt.events?.[0]?.args?.winner;
         }
         catch (error) {
           if ((error as any).code === 4001) {
@@ -133,14 +133,12 @@ export function useAppModel(): State {
       subscribe(listener) {
         const dispatch = (
           message: string, waver: string, ts: BigNumber, winner: boolean
-        ) => {
-          listener({
-            waver,
-            message,
-            winner,
-            timestamp: new Date(ts.toNumber() * 1000),
-          });
-        };
+        ) => listener({
+          waver,
+          message,
+          winner,
+          timestamp: new Date(ts.toNumber() * 1000),
+        });
         contract.on("NewWave", dispatch);
         return () => contract.removeListener("NewWave", dispatch);
       },
