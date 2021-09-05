@@ -125,9 +125,9 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
       <button type="submit" disabled={busy}>
         <h3>wave back{count ? ` (${count})` : ""}</h3>
       </button>
-      {count ? (
-        <output className="waves">
-          {waves.map(({ waver, message, timestamp, winner }, i) => (
+      <output className="waves">
+        {count ? (
+          waves.map(({ waver, message, timestamp, winner }, i) => (
             <div className="wave" key={i}>
               <p className="message">{message}</p>
               <p className="meta">
@@ -135,9 +135,24 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
                 <span>{winner ? `🏆 ${waver}` : waver}</span>
               </p>
             </div>
-          ))}
-        </output>
-      ) : null}
+          ))
+        ) : (
+          <div className="wave">
+            <h2>⚠️ If you can read this, you're probably on the mainnet right now.</h2>
+            <p>
+              Don't worry. This contract is not deployed in the mainnet so you
+              couldn't possibly have wasted real eth on this hello-world app.
+            </p>
+            <p>
+              Switch to the <strong>Rinkeby</strong> testnet and refresh to see what I've done.
+            </p>
+            <p className="meta">
+              (That, or a new version has just been deployed and there are no waves yet.
+              You can be the first!)
+            </p>
+          </div>
+        )}
+      </output>
     </form>
   );
 }
