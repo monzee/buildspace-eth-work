@@ -16,7 +16,7 @@ export type Wave = {
 
 export type WaveApi = {
   totalWaves(): Promise<number>
-  allWaves(): Promise<Wave[]>
+  allWaves(): Promise<Wave[] | null>
   subscribe(listener: (newWave: Wave) => void): () => void
   wave(message: string): AsyncGenerator<TxnProgress, boolean>
 }
@@ -126,7 +126,7 @@ export function useAppModel(): State {
         }
         catch (error) {
           my.catch(error);
-          return [];
+          return null;
         }
       },
 

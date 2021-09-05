@@ -40,9 +40,8 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
   const [, setIsTyping] = useState(false);
-  const [waves, setWaves] = useState<Wave[]>([]);
+  const [waves, setWaves] = useState<Wave[] | null>([]);
   const msgField = useRef<HTMLInputElement>(null);
-  const count = waves.length;
 
   const action = useCallback(async (msg: string) => {
     if (!msg.length) {
@@ -101,7 +100,7 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
 
   useEffect(() => {
     api.allWaves().then(setWaves);
-    return api.subscribe((newWave) => setWaves((xs) => [...xs, newWave]));
+    return api.subscribe((wave) => setWaves((xs) => [...(xs ?? []), wave]));
   }, [api]);
 
   return (
@@ -123,10 +122,10 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
       />
       <Status max={10} value={progress} message={status} done={reset} />
       <button type="submit" disabled={busy}>
-        <h3>wave back{count ? ` (${count})` : ""}</h3>
+        <h3>wave back{waves !== null ? ` (${waves.length})` : ""}</h3>
       </button>
       <output className="waves">
-        {count ? (
+        {waves !== null ? (
           waves.map(({ waver, message, timestamp, winner }, i) => (
             <div className="wave" key={i}>
               <p className="message">{message}</p>
@@ -138,17 +137,13 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
           ))
         ) : (
           <div className="wave">
-            <h2>⚠️ If you can read this, you're probably on the mainnet right now.</h2>
+            <h2>⚠️ You're probably on the mainnet right now.</h2>
             <p>
-              Don't worry. This contract is not deployed in the mainnet so you
+              Don't worry. This contract isn't deployed in the mainnet so you
               couldn't possibly have wasted real eth on this hello-world app.
             </p>
             <p>
-              Switch to the <strong>Rinkeby</strong> testnet and refresh to see what I've done.
-            </p>
-            <p className="meta">
-              (That, or a new version has just been deployed and there are no waves yet.
-              You can be the first!)
+              Switch to the <strong>Rinkeby</strong> testnet and refresh to see what's up.
             </p>
           </div>
         )}
