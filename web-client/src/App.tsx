@@ -20,7 +20,7 @@ function App() {
               <h1>Please wait...</h1>
             ),
 
-            connected: (acc, api) => (<>
+            connected: (api) => (<>
               <h1 className="gigantic">hello!</h1>
               <WaveClient api={api} bail={reset} />
             </>),
@@ -30,6 +30,14 @@ function App() {
               <button onClick={connect}>
                 <h3>Connect wallet</h3>
               </button>
+            </>),
+
+            wrongNetwork: (chain) => (<>
+              <h1>⚠️ Wrong network!</h1>
+              <p>
+                Please switch to the <strong>Rinkeby</strong> test network
+                to continue.
+              </p>
             </>),
 
             failed: (reason, rollback) => {

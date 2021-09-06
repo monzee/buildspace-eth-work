@@ -40,18 +40,29 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
   const [, setIsTyping] = useState(false);
-  const [waves, setWaves] = useState<Wave[] | null>([]);
+  const [waves, setWaves] = useState<Wave[]>([]);
   const msgField = useRef<HTMLInputElement>(null);
 
-  const action = useCallback(async (msg: string) => {
-    if (!msg.length) {
+  const reset = useCallback(() => {
+    setProgress(0);
+    setStatus("");
+    setIsTyping((flag) => {
+      if (!flag) {
+        setMessage("");
+      }
+      return flag;
+    });
+  }, []);
+
+  async function submit() {
+    if (!message.length) {
       setStatus("say something!");
       setProgress(10);
       return;
     }
     setBusy(true);
     let fakeProgress!: ReturnType<typeof setInterval>;
-    let winner = await completion(api.wave(msg), (status) => {
+    let winner = await completion(api.wave(message), (status) => {
       switch (status[0]) {
         case "pending":
           setStatus("awaiting user approval...");
@@ -85,29 +96,18 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
     if (winner) {
       setStatus("🎉 YOU WON! 🎉");
     }
-  }, [api, bail]);
-
-  const reset = useCallback(() => {
-    setProgress(0);
-    setStatus("");
-    setIsTyping((flag) => {
-      if (!flag) {
-        setMessage("");
-      }
-      return flag;
-    });
-  }, []);
+  }
 
   useEffect(() => {
     api.allWaves().then(setWaves);
-    return api.subscribe((wave) => setWaves((xs) => [...(xs ?? []), wave]));
+    return api.onNewWave((wave) => setWaves((xs) => [...xs, wave]));
   }, [api]);
 
   return (
     <form onSubmit={(ev) => {
       ev.preventDefault();
       if (!busy) {
-        action(message);
+        submit();
         msgField.current?.blur();
       }
     }}>
@@ -122,31 +122,18 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
       />
       <Status max={10} value={progress} message={status} done={reset} />
       <button type="submit" disabled={busy}>
-        <h3>wave back{waves !== null ? ` (${waves.length})` : ""}</h3>
+        <h3>wave back{waves.length ? ` (${waves.length})` : ""}</h3>
       </button>
       <output className="waves">
-        {waves !== null ? (
-          waves.map(({ waver, message, timestamp, winner }, i) => (
-            <div className="wave" key={i}>
-              <p className="message">{message}</p>
-              <p className="meta">
-                <span>{formatDate(timestamp)}</span>
-                <span>{winner ? `🏆 ${waver}` : waver}</span>
-              </p>
-            </div>
-          ))
-        ) : (
-          <div className="wave">
-            <h2>⚠️ You're probably on the mainnet right now.</h2>
-            <p>
-              Don't worry. This contract isn't deployed in the mainnet so you
-              couldn't possibly have wasted real eth on this hello-world app.
-            </p>
-            <p>
-              Switch to the <strong>Rinkeby</strong> testnet and refresh to see what's up.
+        {waves.map(({ waver, message, timestamp, winner }, i) => (
+          <div className="wave" key={i}>
+            <p className="message">{message}</p>
+            <p className="meta">
+              <span>{formatDate(timestamp)}</span>
+              <span>{winner ? `🏆 ${waver}` : waver}</span>
             </p>
           </div>
-        )}
+        ))}
       </output>
     </form>
   );

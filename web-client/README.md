@@ -1,3 +1,14 @@
+# `WavePortal` web client
+
+## Before running `yarn start`:
+The `model` module requires the `typechain` generated types in order to build.
+First, run `npx hardhat compile` in the outer package in order to generate the
+artifacts. Then in this directory, run
+`npx typechain --target ethers-v5 --out-dir src/contract abi/contracts/WavePortal.sol/WavePortal.json`.
+You should be able to `yarn start` without any problems after that.
+
+******
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

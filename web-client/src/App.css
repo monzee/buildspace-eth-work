@@ -79,8 +79,8 @@ h1.gigantic {
 
 .status-message {
   width: 100%;
-  min-height: 1.2em;
-  margin: 0 0 1em;
+  min-height: 1.5em;
+  margin-bottom: 0.5em;
   color: #ffffff80;
 }
 

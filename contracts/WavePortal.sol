@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
-
 
 contract WavePortal {
   struct Wave {
@@ -26,15 +24,13 @@ contract WavePortal {
   mapping(address => uint) private cooldown;
 
   constructor() payable {
-    console.log("[WavePortal] sup yo");
   }
 
   function wave(string memory _message) public {
-    require(cooldown[msg.sender] + 5 seconds < block.timestamp, "Wait 5s.");
+    require(cooldown[msg.sender] + 15 seconds < block.timestamp, "Wait 15s.");
     rngSeed = (block.difficulty + block.timestamp + rngSeed) % 100;
-    bool winner = rngSeed < 10 && cooldown[msg.sender] + 1 minutes < block.timestamp;
+    bool winner = rngSeed < 20;
     if (winner) {
-      console.log("[#wave] %s won!", msg.sender);
       uint prize = 0.0001 ether;
       require(prize <= address(this).balance, "Not enough funds for prize");
       (bool ok,) = (msg.sender).call{ value: prize }("");

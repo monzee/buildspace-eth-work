@@ -5,7 +5,7 @@ import { Sum, TxnProgress } from "./util";
 
 
 const eth = (window as any).ethereum;
-const address = "0x7378c22F2800e627c0E47eeE60320dc1d09BF23B";
+const address = "0x475D123a2b41eea79F3c72d45831c083C76De5d4";
 
 export type Wave = {
   waver: string
@@ -16,9 +16,9 @@ export type Wave = {
 
 export type WaveApi = {
   totalWaves(): Promise<number>
-  allWaves(): Promise<Wave[] | null>
-  subscribe(listener: (newWave: Wave) => void): () => void
-  wave(message: string): AsyncGenerator<TxnProgress, boolean>
+  allWaves(): Promise<Wave[]>
+  wave(message: string): TxnProgress<boolean>
+  onNewWave(accept: (wave: Wave) => void): () => void
 }
 
 export type State = {
@@ -26,20 +26,22 @@ export type State = {
   when: Sum<{
     noEthereum: []
     checking: []
-    connected: [account: string, api: WaveApi]
+    connected: [api: WaveApi]
     notConnected: [connect: () => void]
+    wrongNetwork: [chain: string]
     failed: [reason: any, rollback: () => void]
   }>
 }
 
 export function useAppModel(): State {
-  type EthMethod = "eth_requestAccounts" | "eth_accounts";
+  type EthMethod = "eth_requestAccounts" | "eth_accounts"
   type Internal =
     | { tag: "no-eth" }
     | { tag: "checking" }
-    | { tag: "found"; account: string; api: WaveApi }
+    | { tag: "ready"; api: WaveApi }
     | { tag: "no-accounts" }
-    | { tag: "caught"; error: any; lastGood: Internal };
+    | { tag: "wrong-chain"; chain: string }
+    | { tag: "caught"; error: any; lastGood: Internal }
 
   const [state, setState] = useState<Internal>({
     tag: eth ? "checking" : "no-eth"
@@ -55,14 +57,16 @@ export function useAppModel(): State {
       try {
         let accounts = await eth.request({ method });
         if (accounts.length) {
-          let provider = new ethers.providers.Web3Provider(eth);
-          let signer = provider.getSigner();
-          let contract = WavePortal__factory.connect(address, signer);
-          setState({
-            tag: "found",
-            account: accounts[0],
-            api: my.api(contract),
-          });
+          let chain = await eth.request({ method: "eth_chainId" });
+          if (chain === "0x4") {
+            let provider = new ethers.providers.Web3Provider(eth);
+            let signer = provider.getSigner();
+            let contract = WavePortal__factory.connect(address, signer);
+            setState({ tag: "ready", api: my.api(contract) });
+          }
+          else {
+            setState({ tag: "wrong-chain", chain });
+          }
         }
         else {
           setState({ tag: "no-accounts" });
@@ -79,6 +83,13 @@ export function useAppModel(): State {
 
     catch(error: any) {
       setState((lastGood) => ({ tag: "caught", error, lastGood }));
+    },
+
+    onChainChange() {
+      if (eth) {
+        eth.on("chainChanged", my.start);
+        return () => eth.removeListener("chainChanged", my.start);
+      }
     },
 
     api: (contract: WavePortal): WaveApi => ({
@@ -126,14 +137,14 @@ export function useAppModel(): State {
         }
         catch (error) {
           my.catch(error);
-          return null;
+          return [];
         }
       },
 
-      subscribe(listener) {
+      onNewWave(accept) {
         const dispatch = (
           message: string, waver: string, ts: BigNumber, winner: boolean
-        ) => listener({
+        ) => accept({
           waver,
           message,
           winner,
@@ -142,10 +153,13 @@ export function useAppModel(): State {
         contract.on("NewWave", dispatch);
         return () => contract.removeListener("NewWave", dispatch);
       },
-    })
+    }),
   }), []);
 
-  useEffect(() => my.start(), [my]);
+  useEffect(() => {
+    my.start();
+    return my.onChainChange();
+  }, [my]);
 
   return {
     reset: my.start,
@@ -155,10 +169,12 @@ export function useAppModel(): State {
           return visitor.noEthereum();
         case "checking":
           return visitor.checking();
-        case "found":
-          return visitor.connected(state.account, state.api);
+        case "ready":
+          return visitor.connected(state.api);
         case "no-accounts":
           return visitor.notConnected(() => my.connect("eth_requestAccounts"));
+        case "wrong-chain":
+          return visitor.wrongNetwork(state.chain);
         case "caught":
           return visitor.failed(state.error, () => setState(state.lastGood));
       }

@@ -9,12 +9,14 @@ export interface Sum<V extends Variants> {
   <T>(visitor: Visitor<T, V>): T
 }
 
-export type TxnProgress =
+export type TxnStatus =
   | [tag: "pending"]
   | [tag: "denied"]
   | [tag: "accepted", transaction: ContractTransaction]
   | [tag: "done", receipt: ContractReceipt]
   | [tag: "panic", error: any]
+
+export type TxnProgress<T = void> = AsyncGenerator<TxnStatus, T>
 
 export async function completion<T, R>(
   stream: AsyncIterator<T, R>,
