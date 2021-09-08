@@ -1,10 +1,18 @@
 # `WavePortal` web client
 
-## Before running `yarn start`:
+## Before running `yarn start` or `build`:
 The `model` module requires the `typechain` generated types in order to build.
-First, run `npx hardhat compile` in the outer package in order to generate the
-artifacts. Then in this directory, run
-`npx typechain --target ethers-v5 --out-dir src/contract abi/contracts/WavePortal.sol/WavePortal.json`.
+First, generate the ABI files that `typechain` needs to generate the types. This
+needs to be done in the parent package:
+```shell
+$ cd ..
+$ npx hardhat compile
+```
+Then run the `gen-contracts` script on this package:
+```shell
+$ cd web-client
+$ yarn gen-contracts
+```
 You should be able to `yarn start` without any problems after that.
 
 ******

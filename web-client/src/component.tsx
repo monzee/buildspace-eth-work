@@ -130,7 +130,11 @@ export function WaveClient({ api, bail }: { api: WaveApi; bail?: () => void }) {
             <p className="message">{message}</p>
             <p className="meta">
               <span>{formatDate(timestamp)}</span>
-              <span>{winner ? `🏆 ${waver}` : waver}</span>
+              {winner ? (
+                <span><b>🏆</b> {waver}</span>
+              ) : (
+                <span>{waver}</span>
+              )}
             </p>
           </div>
         ))}

@@ -4,10 +4,7 @@ node_modules
 #Hardhat files
 cache
 artifacts
-wp-address
 deploy-address
 
-web-client/abi
 web-client/src/contract
-
 Session.vim

@@ -116,6 +116,7 @@ h1.gigantic {
   margin-top: 1em;
   display: block;
 }
+
 .wave {
   text-align: left;
   box-sizing: border-box;
@@ -125,6 +126,7 @@ h1.gigantic {
   padding: 0 1em;
   font-size: 0.8em;
 }
+
 .meta {
   font-size: 0.6em;
   margin: 0 -1.666667em;
@@ -134,4 +136,8 @@ h1.gigantic {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+.meta b {
+  color: #fff;
 }
